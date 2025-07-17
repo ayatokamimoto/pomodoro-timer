@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ポモドーロタイマー</title>
+  <style>
+    body {
+      background-color: #007BFF;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+    input, button {
+      margin: 5px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ポモドーロタイマー</h1>
+
+  <label>作業時間（分）: <input type="number" id="workInput" value="25"></label><br>
+  <label>休憩時間（分）: <input type="number" id="breakInput" value="5"></label><br>
+  <label>終了時刻（時:分）: <input type="time" id="endTimeInput"></label><br>
+  <button onclick="startTimer()">開始</button>
+  <button onclick="resetTimer()">リセット</button>
+
+  <h2 id="mode">待機中</h2>
+  <h3>残り時間: <span id="timeDisplay">00:00</span></h3>
+  <h3>終了時刻: <span id="endDisplay">--:--</span></h3>
+  <h3>全体の残り時間: <span id="totalTimeDisplay">--:--</span></h3>
+
+  <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+  <script>
+    let workDuration = 25 * 60;
+    let breakDuration = 5 * 60;
+    let isWork = true;
+    let interval;
+    let remaining = 0;
+    let endTime;
+
+    function startTimer() {
+      workDuration = parseInt(document.getElementById('workInput').value) * 60;
+      breakDuration = parseInt(document.getElementById('breakInput').value) * 60;
+      const endTimeInput = document.getElementById('endTimeInput').value;
+
+      if (!endTimeInput) {
+        alert('終了時刻を設定してください');
+        return;
+      }
+
+      const now = new Date();
+      const [hours, minutes] = endTimeInput.split(':').map(Number);
+      endTime = new Date();
+      endTime.setHours(hours, minutes, 0, 0);
+
+      if (endTime <= now) {
+        endTime.setDate(endTime.getDate() + 1);
+      }
+
+      document.getElementById('endDisplay').textContent = endTime.toTimeString().slice(0, 5);
+      isWork = true;
+      startSession();
+    }
+
+    function startSession() {
+      remaining = isWork ? workDuration : breakDuration;
+      document.getElementById('mode').textContent = isWork ? '作業中' : '休憩中';
+      interval = setInterval(updateTimer, 1000);
+    }
+
+    function updateTimer() {
+      const now = new Date();
+      const totalRemaining = Math.max(0, Math.floor((endTime - now) / 1000));
+      document.getElementById('totalTimeDisplay').textContent = formatTime(totalRemaining);
+
+      if (totalRemaining <= 0) {
+        clearInterval(interval);
+        document.getElementById('mode').textContent = '終了';
+        return;
+      }
+
+      document.getElementById('timeDisplay').textContent = formatTime(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        document.getElementById('beep').volume = 1.0;
+        document.getElementById('beep').play();
+        isWork = !isWork;
+        startSession();
+      }
+      remaining--;
+    }
+
+    function resetTimer() {
+      clearInterval(interval);
+      document.getElementById('timeDisplay').textContent = '00:00';
+      document.getElementById('totalTimeDisplay').textContent = '--:--';
+      document.getElementById('endDisplay').textContent = '--:--';
+      document.getElementById('mode').textContent = '待機中';
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const s = (seconds % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+  </script>
+</body>
+</html>
